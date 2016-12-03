@@ -1,0 +1,239 @@
+%%
+%% This is file 'tcsushihead.sty'.
+%% 
+%% Copyright (c) 2016 Takayuki YATO (aka. "ZR")
+%%   GitHub:   https://github.com/zr-tex8r
+%%   Twitter:  @zr_tex8r
+%%
+%% This package is distributed under the MIT License.
+%%
+
+%% package declarations
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{tcsushihead}[2016/12/04 v0.1]
+\def\tcsh@pkgname{tcsushihead}
+
+%--------------------------------------- package options
+
+%% user parameters
+\def\tcsh@image@count{0}   % number of pics
+\def\tcsh@image@size{1em}  % image size
+\def\tcsh@gap@size{5em}    % gap size
+\def\tcsh@cycle{2.5}       % duration of a cycle (sec)
+\def\tcsh@ticks{50}        % number of tickss in a cycle
+\def\tcsh@image@file{emoji_images/twemoji-pdf/1F363.pdf}
+\def\tcsh@image@bbox{0 0 36 36}
+\newif\iftcsh@use@bbox \tcsh@use@bboxfalse
+\def\tcsh@default{true}
+
+%% package
+\RequirePackage{keyval}
+
+%% options
+\DeclareOption{dvipdfmx}{%
+  \tcsh@use@bboxtrue
+  \PassOptionsToPackage{dvipdfmx}{animate}}
+\DeclareOption{dvips}{%
+  \PassOptionsToPackage{dvips}{animate}}
+\DeclareOption{xetex}{}
+\DeclareOption{luatex}{}
+\DeclareOption{pdftex}{}
+% (keyval)
+\DeclareOption*{%
+  \edef\tcsh@tmpa{\noexpand\setkeys{tcsh}{\CurrentOption}%
+  }\tcsh@tmpa}
+% 'count=<number>'
+\define@key{tcsh}{count}{%
+  \def\tcsh@image@count{#1}}
+% 'size=<dimen>'
+\define@key{tcsh}{size}{%
+  \def\tcsh@image@size{#1}}
+% 'gap=<dimen>'
+\define@key{tcsh}{gap}{%
+  \def\tcsh@gap@size{#1}}
+% 'cycle=<real>'
+\define@key{tcsh}{cycle}{%
+  \def\tcsh@cycle{#1}}
+% 'ticks=<number>'
+\define@key{tcsh}{ticks}{%
+  \def\tcsh@ticks{#1}}
+% 'imagefile=<path>'
+\define@key{tcsh}{imagefile}{%
+  \let\tcsh@image@bbox\@empty
+  \def\tcsh@image@file{#1}}
+% 'imagebbox=<bbox>'
+\define@key{tcsh}{imagebbox}{%
+  \def\tcsh@image@bbox{#1}}
+% 'default=<bool>'
+\define@key{tcsh}{default}{%
+  \def\tcsh@default{#1}}
+% dispatch
+\ProcessOptions*
+
+%--------------------------------------- general
+
+%% packages
+\RequirePackage{calc}
+\RequirePackage{graphicx}
+\RequirePackage{animate}
+
+%% unique tokens
+\def\tcsh@end{\tcsh@end@}
+
+%% variables
+\newcount\tcsh@g@cnta
+\newdimen\tcsh@dima
+\newdimen\tcsh@dimb
+\newbox\tcsh@boxa
+\newbox\tcsh@boxb
+\let\tcsh@g@width\relax
+\let\tcsh@g@count\relax
+\let\tcsh@g@image@size\relax
+\let\tcsh@g@gap@size\relax
+\let\tcsh@g@ticks\relax
+\let\tcsh@g@rate\relax
+
+%---------------------------------------  sushi-bar
+
+%% global settings
+\def\tcsh@default@count{1}
+\def\tcsh@max@count{100}
+\def\tcsh@min@cycle{0.1}
+\def\tcsh@max@rate{100}
+\def\tcsh@anim@param{%
+  autopause,autoplay,loop,autoresume=false,controls=false}
+
+%% \sushiheadsetup{<key>=<value>,...}
+\newcommand*{\sushiheadsetup}[1]{%
+  \setkeys{tcsh}{#1}}
+
+%%<+> \ShowSushiBar{<dimen>}
+\DeclareRobustCommand*{\ShowSushiBar}[1]{%
+  \leavevmode
+  \begingroup
+    \edef\tcsh@width{#1}%
+    \tcsh@calc@metrics
+    \tcsh@create@box
+    \tcsh@put@animated@box
+  \endgroup}
+
+%% \tcsh@calc@metrics
+% Sets various \tcsh@g@XXX variables.
+\def\tcsh@calc@metrics{%
+  \setbox\tcsh@boxa\hbox{% sandbox
+    \let\c@tcsh@cnta\tcsh@g@cnta
+    \setcounter{tcsh@cnta}{\tcsh@image@count}%
+    \xdef\tcsh@g@count{\the\tcsh@g@cnta}%
+    \setcounter{tcsh@cnta}{\tcsh@ticks}%
+    \ifnum\tcsh@g@cnta<\@ne \tcsh@g@cnta\@ne \fi
+    \xdef\tcsh@g@ticks{\the\tcsh@g@cnta}%
+    \setlength{\tcsh@dima}{\tcsh@width}%
+    \ifdim\tcsh@dima<\z@ \tcsh@dima=\z@ \fi
+    \xdef\tcsh@g@width{\the\tcsh@dima}%
+    \setlength{\tcsh@dima}{\tcsh@image@size}%
+    \ifdim\tcsh@dima<\p@ \tcsh@dima=\p@ \fi
+    \xdef\tcsh@g@image@size{\the\tcsh@dima}%
+    \setlength{\tcsh@dima}{\tcsh@gap@size}%
+    \ifdim\tcsh@dima<\p@ \tcsh@dima=\p@ \fi
+    \xdef\tcsh@g@gap@size{\the\tcsh@dima}%
+    \tcsh@dima=\tcsh@cycle\p@
+    \ifdim\tcsh@dima<\tcsh@min@cycle\p@ \tcsh@dima=\tcsh@min@cycle\p@ \fi
+    \edef\tcsh@tmpa{\strip@pt\tcsh@dima}%
+    \setlength{\tcsh@dima}{\tcsh@ticks\p@/\real{\tcsh@tmpa}}%
+    \xdef\tcsh@g@rate{\strip@pt\tcsh@dima}}%
+  \tcsh@dima=\tcsh@g@rate\p@
+  \ifdim\tcsh@dima>\tcsh@max@rate\p@ \tcsh@dima=\tcsh@max@rate\p@ \fi
+  \xdef\tcsh@g@rate{\strip@pt\tcsh@dima}%
+  \ifnum\tcsh@g@count<\@ne
+      \global\let\tcsh@g@count\tcsh@default@count \fi
+  \ifnum\tcsh@g@count>\tcsh@max@count
+      \global\let\tcsh@g@count\tcsh@max@count \fi
+  %\tcsh@show@metrics
+  }
+\def\tcsh@show@metrics{%
+  \typeout{%
+    count=\tcsh@g@count^^J%
+    ticks=\tcsh@g@ticks^^J%
+    width=\tcsh@g@width^^J%
+    size=\tcsh@g@image@size^^J%
+    gap=\tcsh@g@gap@size^^J%
+    rate=\tcsh@g@rate}}
+
+%% \tcsh@put@image
+\def\tcsh@put@image{%
+  \let\tcsh@param@bb\@empty
+  \iftcsh@use@bbox\ifx\tcsh@imaqe@bbox\@empty\else
+    \def\tcsh@param@bb{bb=\tcsh@image@bbox,}%
+  \fi\fi
+  \edef\tcsh@next{\noexpand\includegraphics[\tcsh@param@bb
+      width=\tcsh@g@image@size,height=\tcsh@g@image@size]%
+      {\tcsh@image@file}%
+  }\tcsh@next}
+
+%% \tcsh@put@dummy@image
+\def\tcsh@put@dummy@image{%
+  \leavevmode\kern-\paperwidth
+  \hb@xt@\z@{\tcsh@put@image}%
+  \kern\paperwidth}
+
+%% \tcsh@create@box
+% Sets \tcsh@boxa and \tcsh@boxb.
+\def\tcsh@create@box{%
+  % sushi instance
+  \setbox\tcsh@boxb\hbox{\tcsh@put@image}%
+  % sushi list
+  \@tempcnta=\tcsh@g@count\relax
+  \setbox\tcsh@boxb\hbox{%
+    \@whilenum{\@tempcnta>\z@}\do{\advance\@tempcnta\m@ne
+      \copy\tcsh@boxb}%
+    \kern\tcsh@gap@size\relax}%
+  % whole box
+  \@tempdima=\tcsh@g@width\relax \@tempdima=.5\@tempdima
+  \@tempcntb\@tempdima \divide\@tempcntb\wd\tcsh@boxb
+  \setbox\tcsh@boxa\hb@xt@\tcsh@g@width{%
+    \kern\@tempdima
+    \@tempcnta\@tempcntb \advance\@tempcnta\@ne
+    \kern-\@tempcnta\wd\tcsh@boxb
+    \advance\@tempcnta\@tempcntb \advance\@tempcnta\tw@
+    \@whilenum{\@tempcnta>\z@}\do{\advance\@tempcnta\m@ne
+      \unhcopy\tcsh@boxb}%
+    \hss}}
+
+%% \tcsh@put@box@at@tick{<tick>}
+\def\tcsh@put@box@at@tick#1{%
+  \@tempdima#1\p@ \divide\@tempdima\tcsh@g@ticks\relax
+  \edef\tcsh@tmpa{\strip@pt\@tempdima}%
+  \leavevmode \kern-\tcsh@tmpa\wd\tcsh@boxb
+  \copy\tcsh@boxa
+  \kern\tcsh@tmpa\wd\tcsh@boxb}
+
+%% \tcsh@put@animated@box
+\def\tcsh@put@animated@box{%
+  \edef\tcsh@next{%
+    \noexpand\begin{animateinline}%
+      [width=\tcsh@g@width,height=\tcsh@g@image@size,%
+       \tcsh@anim@param]{\tcsh@g@rate}%
+      \noexpand\multiframe{\tcsh@g@ticks}{itcshT=0+1}{%
+      \noexpand\tcsh@put@box@at@tick{\noexpand\itcshT}%
+    }\noexpand\end{animateinline}%
+  }\tcsh@next}
+
+%---------------------------------------  sushi-head
+
+%% page style 'sushihead'
+\def\ps@sushihead{%
+  \let\@mkboth\@gobbletwo
+  \def\@oddhead{\normalfont
+    \edef\tcsh@default@count{\the\c@page}%
+    \hss\ShowSushiBar{\textwidth}\hss}%
+  \let\@evenhead\@oddhead
+  \let\@oddfoot\@empty \let\@evenfoot\@empty}
+
+%% use as default
+\def\tcsh@tmpa{true}\ifx\tcsh@tmpa\tcsh@default
+  \pagestyle{sushihead}
+\fi
+
+%--------------------------------------- all done
+\endinput
+%% EOF
